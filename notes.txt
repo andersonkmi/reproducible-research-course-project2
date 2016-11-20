@@ -1,0 +1,13 @@
+EVTYPE - contains the event type
+a) most harmful events to population health
+in this case consider the following fields:
+- fatalities
+- injuries
+
+b) Greatest economic consequences
+fields to consider:
+- propdmg + propdmgexp
+- cropdmg + cropdmgexp
+K - Thousands
+M - Millions
+B - Bilions
