@@ -5,5 +5,7 @@ library(ggplot2)
 library(data.table)
 
 stormFileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
-download.file(stormFileUrl, destfile="storm_data.csv.bz2")
+destFileName <- "storm_data.csv.bz2"
+if (!file.exists(destFileName)) download(stormFileUrl, destFileName)
 stormData <- read.csv("storm_data.csv.bz2")
+stormDataFrame <- select(stormData, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
