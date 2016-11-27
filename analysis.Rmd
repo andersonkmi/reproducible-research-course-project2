@@ -1,39 +1,52 @@
----
-title: "Analysis"
-author: "Anderson Ito"
-date: "November 21, 2016"
-output: html_document
----
+# Exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+## Synopsis
+This report loads, analyzes and describes the results in terms of harmfulness (injuries and fatalities) and damages (property and crop) caused by storms and weather events tracked by NOAA - National Oceanic and Atmospheric Administration. The following questions are to be answered:
+* Which types of events are most harmful to population health?
+* which types of events have the greatest economic consequences?
+This report is organiZed in the following sections:
+* Library loading
+* Raw data download
+* Data Processing
+* Results
+* Conclusions
 
-Loading a few libraries:
+## Library loading:
+Here, some of the used libraries are loaded for later use.
 ```{r,echo = TRUE, message=FALSE}
+library(data.table)
 library(plyr)
 library(dplyr)
 library(lattice)
-library(data.table)
+library(ggplot2)
 ```
 
+## Raw data download
+The required CSV for this analysis is available from the following web site https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2 and for this report the code required to download it is listed as follows.
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r, echo = TRUE}
+stormFileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+destFileName <- "storm_data.csv.bz2"
+if (!file.exists(destFileName)) download.file(stormFileUrl, destfile=destFileName, quiet=TRUE)
 ```
 
-## Including Plots
+The downloaded file is saved under the name **storm_data.csv.bz2** locally to where this analysis is executed.
 
-You can also embed plots, for example:
+## Data processing
+This section describes the steps necessary to load the data and select the necessary columns from the data set. After this step, then the calculations and graph plotting will be performed in order to answer the questions raised in the Synopsis section.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+Once the CSV with the raw data is downloaded it is time for processing the information in it.
+
+```{r, echo=TRUE, cache=TRUE}
+stormData <- read.csv("storm_data.csv.bz2", header=TRUE, sep=",")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+After loading it, let's check its dimensions
+```{r, echo=TRUE}
+dim(stormData)
+```
+
+The original data has 37 columns and in order to make this analysis a little bit easier to execute, only the ones required for this analysis will be used.
+```{r, echo=TRUE}
+stormDataFrame <- select(stormData, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
+```
