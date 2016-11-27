@@ -2,14 +2,16 @@
 
 ## Synopsis
 This report loads, analyzes and describes the results in terms of harmfulness (injuries and fatalities) and damages (property and crop) caused by storms and weather events tracked by NOAA - National Oceanic and Atmospheric Administration. The following questions are to be answered:
-* Which types of events are most harmful to population health?
-* which types of events have the greatest economic consequences?
+
+* **Which types of events are most harmful to population health?**
+* **Which types of events have the greatest economic consequences?**
+
 This report is organiZed in the following sections:
+
 * Library loading
 * Raw data download
 * Data Processing
 * Results
-* Conclusions
 
 ## Library loading:
 Here, some of the used libraries are loaded for later use.
@@ -35,6 +37,8 @@ The downloaded file is saved under the name **storm_data.csv.bz2** locally to wh
 ## Data processing
 This section describes the steps necessary to load the data and select the necessary columns from the data set. After this step, then the calculations and graph plotting will be performed in order to answer the questions raised in the Synopsis section.
 
+### Initial loading
+
 Once the CSV with the raw data is downloaded it is time for processing the information in it.
 
 ```{r, echo=TRUE, cache=TRUE}
@@ -46,7 +50,130 @@ After loading it, let's check its dimensions
 dim(stormData)
 ```
 
-The original data has 37 columns and in order to make this analysis a little bit easier to execute, only the ones required for this analysis will be used.
+The original data has 37 columns and in order to make this analysis a little bit easier to execute, only the necessary ones will be selected, as shown below:
+
 ```{r, echo=TRUE}
 stormDataFrame <- select(stormData, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
 ```
+
+### Fatalities analysis
+In this section the number of fatalities will be calculated and a bar plot will be generated to show such findings.
+
+First of all the number of fatalities are summed and grouped by weather event type:
+```{r, echo=TRUE}
+totalFatalitiesByEvent <- with(stormDataFrame, aggregate(FATALITIES, by = list(EVTYPE), sum), na.rm=TRUE)
+names(totalFatalitiesByEvent) <- c("Event", "Total")
+```
+
+Once the numbers of fatalities by event are calculated, the rows with 0 total are discarded:
+```{r, echo=TRUE}
+totalFatalitiesByEvent <- totalFatalitiesByEvent[totalFatalitiesByEvent$Total > 0, ]
+```
+
+And finally, the remaining data is sorted by the total number:
+```{r, echo=TRUE}
+totalFatalitiesByEvent <- totalFatalitiesByEvent[order(totalFatalitiesByEvent$Total, decreasing = TRUE), ]
+```
+
+Let's observe the top 20 events:
+```{r, echo=TRUE}
+totalFatalitiesByEvent[1:20, ]
+```
+
+Given the numbers calculated, a bar plot with 20 most fatal events is plotted:
+```{r, echo=TRUE}
+par(mar = c(10.5, 5, 1, 1))
+barplot(totalFatalitiesByEvent$Total[1:20], names.arg=totalFatalitiesByEvent$Event[1:20], las = 2, cex.names = 0.8, col="red", main="Top 20 most fatal events", ylab="Fatalities")
+```
+
+Given the bar plot, it is possible to notice that the most fatal events are: TORNADO, EXCESSIVE HEAT, FLASH FLOOD, HEAT, LIGHTNING, TSTM WIND, FLOOD, RIP CURRENT.
+
+### Injuries analysis
+In this section the number of injuries will be calculated and a bar plot will be generated to show such findings.
+
+First of all the number of injuries are summed and grouped by weather event type:
+```{r, echo=TRUE}
+totalInjuriesByEvent <- with(stormDataFrame, aggregate(INJURIES, by = list(EVTYPE), sum), na.rm=TRUE)
+names(totalInjuriesByEvent) <- c("Event", "Total")
+```
+
+Once the numbers of fatalities by event are calculated, the rows with 0 total are discarded:
+```{r, echo=TRUE}
+totalInjuriesByEvent <- totalInjuriesByEvent[totalInjuriesByEvent$Total > 0, ]
+```
+
+And finally, the remaining data is sorted by the total number:
+```{r, echo=TRUE}
+totalInjuriesByEvent <- totalInjuriesByEvent[order(totalInjuriesByEvent$Total, decreasing = TRUE), ]
+```
+
+Let's observe the top 20 events:
+```{r, echo=TRUE}
+totalInjuriesByEvent[1:20, ]
+```
+
+Given the numbers calculated, a bar plot with 20 most injurious events is plotted:
+```{r, echo=TRUE}
+par(mar = c(9.5, 5, 1, 1))
+barplot(totalInjuriesByEvent$Total[1:20], names.arg=totalInjuriesByEvent$Event[1:20], las = 2, cex.names = 0.8, col="orange", main="Top 20 most injurious events")
+title(ylab="Injuries", line=4)
+```
+
+Given the previous bar plot, it is possible to notice that the most injurious events are: TORNADO (majority of events) followed by TSTM WIND, FLOOD, EXCESSIVE HEAT and LIGHTNING.
+
+### Damages analysis
+In this section the damage analysis is presented and for such part both property and crop damages are considered together since the question raised seems to lead to economic consequences in a coarse fashion.
+
+Initially, the exprssions used are prepared in order to result in the proper multiplier values:
+```{r, echo=TRUE}
+expsymbol <- c("", "+", "-", "?", 0:9, "h", "H", "k", "K", "m", "M", "b", "B")
+factor <- c(rep(10^0, 4), 10^0, 10^1, 10^2, 10^3, 10^4, 10^5, 10^6, 10^7, 10^8, 10^9, 10^2, 10^2, 10^3, 10^3, 10^6, 10^6, 10^9, 10^9)
+multiplier <- data.frame (expsymbol, factor)
+```
+
+Once the multipliers are in place, the calculations for property and crop damages are performed. It is worth mentioning the final figures are based in billions US$:
+```{r, echo=TRUE}
+stormDataFrame$CalculatedPropertyDmg <- stormDataFrame$PROPDMG * multiplier[match(stormDataFrame$PROPDMGEXP, multiplier$expsymbol), 2]
+stormDataFrame$CalculatedCropDmg <- stormDataFrame$CROPDMG * multiplier[match(stormDataFrame$CROPDMGEXP, multiplier$expsymbol), 2]
+stormDataFrame$TotalDamages <- stormDataFrame$CalculatedPropertyDmg + stormDataFrame$CalculatedCropDmg
+stormDataFrame$TotalDamages <- stormDataFrame$TotalDamages / 1000000000
+```
+
+Once the numbers are generated for each event, the next step is to calculated the damages grouped by weather event type:
+```{r, echo=TRUE}
+totalDamagesByEvent <- with(stormDataFrame, aggregate(TotalDamages, by = list(EVTYPE), sum), na.rm=TRUE)
+names(totalDamagesByEvent) <- c("Event", "Total")
+```
+
+Like in previous steps, the lines with 0 total are discarded and the result is ordered by the total value of damages:
+```{r, echo=TRUE}
+totalDamagesByEvent <- totalDamagesByEvent[totalDamagesByEvent$Total > 0, ]
+totalDamagesByEvent <- totalDamagesByEvent[order(totalDamagesByEvent$Total, decreasing = TRUE), ]
+```
+
+Let's observe the first 30 events with most economic impact:
+```{r, echo=TRUE}
+totalDamagesByEvent[1:30, ]
+```
+
+Using the generated figures, the supplementary bar plot is:
+```{r, echo=TRUE}
+par(mar = c(9.5, 5, 1, 1))
+barplot(totalDamagesByEvent$Total[1:30], names.arg=totalDamagesByEvent$Event[1:30], las = 2, cex.names = 0.8, col="blue", main="Top 30 most damaging events")
+title(ylab="Damages in billion US$", line=4)
+```
+
+It can be realized that the events with most economic impact are: FLOOD, HURRICANE/TYPHON, TORNADO, STORM SURGE, AHIL, FLASH FLOOD, DROUGHT, HURRICANE and RIVER FLOOD.
+
+## Results
+Given the analysis performed in the previous sections, the questions raised in the beginning of this report can be answered as follows:
+
+* **Which types of events are most harmful to population health?**
+    + The most fatal events are TORNADO, EXCESSIVE HEAT, FLASH FLOOD, HEAT, LIGHTNING, TSTM WIND, FLOOD, RIP CURRENT.
+    + The most injurious events are: TORNADO (majority of events) followed by TSTM WIND, FLOOD, EXCESSIVE HEAT and LIGHTNING.
+
+
+* **Which types of events have the greatest economic consequences?**
+    + The events with most economic impact are: FLOOD, HURRICANE/TYPHON, TORNADO, STORM SURGE, AHIL, FLASH FLOOD, DROUGHT, HURRICANE and RIVER FLOOD.
+
+In summary, the most harmful event is 'TORNADO' while in the economic perspective FLOOD is ther weather events that causes more impact.
